@@ -1,4 +1,4 @@
-    # Darkside
+# Darkside
 
 For know it's small piece of software at mine beginning of writing FUD (full-undetectable) malware - limited reverse shell for Windows written in C/C++ and Python control panel.
 
