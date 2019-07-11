@@ -1,6 +1,6 @@
 # Darkside
 
-For know it's small piece of software at mine beginning of writing FUD (full-undetectable) malware - limited reverse shell for Windows written in C/C++ and Python control panel.
+For now it's small piece of software at mine beginning of writing FUD (full-undetectable) malware - limited reverse shell for Windows written in C/C++ and Python control panel.
 
 ## Getting Started
 
@@ -9,6 +9,12 @@ Download source from github
 
 ```
 git clone https://github.com/Djkusik/Darkside.git
+```
+
+To compile it, I used few flags for smaller size of final binary, faster processing time, stripping metadata or hiding binary from antiviruses:
+
+```
+i686-w64-mingw32-g++ -std=c++11 darkside.cpp -o darkside.exe -s -lws2_32 -Wno-write-strings -fno-exceptions -fmerge-all-constants -static-libstdc++ -static-libgcc
 ```
 
 ### Prerequisites
